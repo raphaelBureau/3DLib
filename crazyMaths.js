@@ -21,25 +21,7 @@ export class CrazyMaths {
         let sign = 1;
         let zero = 1;
         rads = rads % (PI*2);
-        if(rads < 0) {
-            rads *= -1;
-            zero = -1;
-        }
-        if(rads > 3*PI/2) {
-            rads -= 2*PI;
-        }
-        else{
-        if(rads > PI) {
-            rads -= PI;
-            sign = -1;
-        }
-        else{
-        if(rads > PI/2) {
-            rads -= PI;
-            sign = -1;
-        }
-        }
-        }
+       
         let result = rads;
         for(let i = 1; i <= 7; i++) {
             let valIteration = this.pow(rads, i*2+1);

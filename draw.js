@@ -25,7 +25,15 @@ export class Draw2D { //utilise les fonctions du canvas
     Polygon(vertices, style = [255,0,0,1], wireframe= false) { //fonctionne pour toutes les formes solides 2d 
         this.ctx.beginPath(); //mettre dans un zbuffer avant et order by z DESC
         this.ctx.fillStyle = "rgba(" + style[0] + "," + style[1] + "," + style[2] + "," + style[3] + ")";
-        this.ctx.strokeStyle = "rgba(" + style[0] + "," + style[1] + "," + style[2] + "," + style[3] + ")";;
+        if(style[3] != 1) {
+        this.ctx.strokeStyle = "rgba(" + style[0] + "," + style[1] + "," + style[2] + "," + style[3] * 0.1 + ")";
+        }
+        else{
+        this.ctx.strokeStyle = "rgba(" + style[0] + "," + style[1] + "," + style[2] + ",1)";
+        }
+        if(style[3] != 1 && wireframe) {
+            this.ctx.strokeStyle = "rgba(255,255,255,1)";
+        }
         this.ctx.lineWidth = 1;
         this.ctx.moveTo(vertices[0][0],vertices[0][1]);
         for (let i = 1; i < vertices.length; i++) {

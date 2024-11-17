@@ -1,6 +1,7 @@
+import { Mat } from "./mat.js";
 import { Vertex2D, Vertex3D } from "./vertex.js";
 
-class Geo3D {
+export class Geo3D {
     constructor(position = [0,0,0], rotation = [0,0,0], size = 5, color = [255,0,0,1], vertices, center) {
         vertices = Vertex3D.ApplyRotationList(vertices,rotation,center);
         this.pos = position;
@@ -127,7 +128,7 @@ export class Triangle extends Geo3D {
         super(position, rotation, width * height, color, vertices, center);
     }
 
-    Draw(s, buffer) { //override                                                      
+    Draw(s, buffer, cull = true) { //override                                                      
         let vertices = s.ConvertVertexList(this.vertices);
         let faces = [];
 
@@ -138,7 +139,12 @@ export class Triangle extends Geo3D {
         faces.push([vertices[vertices.length - 2], vertices[0], vertices[1]]);
         faces.push([vertices[1], vertices[vertices.length - 1], vertices[vertices.length - 2]]);
 
-        Geo3D.CullFaces(faces,s).forEach(face => { buffer.push([face, Geo3D.ZSum(face), this.color]); });
+        if(cull) {
+            Geo3D.CullFaces(faces,s).forEach(face => { buffer.push([face, Geo3D.ZSum(face), this.color]); });
+           }
+           else{
+            faces.forEach(face => {buffer.push([face, Geo3D.ZSum(face), this.color])});
+           }
     }
 }
 
@@ -152,7 +158,7 @@ Draw(s, buffer) { //override
     let vertices = s.ConvertVertexList(this.vertices);
     let faces = [[vertices[0],vertices[2],vertices[1]],[vertices[0],vertices[3],vertices[2]]];
 
-    Geo3D.CullFaces(faces,s).forEach(face => { buffer.push([face, Geo3D.ZSum(face), this.color]); });
+    Geo3D.CullFaces(faces,s).forEach(face => { buffer.push([face, Geo3D.ZSum(face) + 1000, this.color]); });
 }
 }
 
@@ -168,7 +174,7 @@ export class Cylinder extends Geo3D {
         let center = [position[0], position[1]+height/2, position[2]];
         super(position,rotation, width * height, color, vertices, center);
     }
-    Draw(s, buffer) { //override                                                      
+    Draw(s, buffer, cull = true) { //override                                                      
         let vertices = s.ConvertVertexList(this.vertices);
         let faces = [];
 
@@ -184,38 +190,74 @@ export class Cylinder extends Geo3D {
         faces.push([vertices[vertices.length-2], vertices[1], vertices[2]]);
         faces.push([vertices[vertices.length-2], vertices[vertices.length-3], vertices[1]]);
 
-        Geo3D.CullFaces(faces,s).forEach(face => { buffer.push([face, Geo3D.ZSum(face), this.color]); });
+        if(cull) {
+            Geo3D.CullFaces(faces,s).forEach(face => { buffer.push([face, Geo3D.ZSum(face), this.color]); });
+           }
+           else{
+            faces.forEach(face => {buffer.push([face, Geo3D.ZSum(face), this.color])});
+           }
     }
 }
 
 export class Sphere extends Geo3D {
-    constructor(x = 0, y = 0, z = 0, width = 5, height = 5, segments = 4, color = [0,255,0,1]) {
-        let vertices = [[x, y, z]];
-        for (let i = 0; i < segments; i++) {
-            let [tX, tZ] = Vertex2D.Rotate([width, 0], Math.PI * 2 / (segments) * i);
-            vertices.push([x + tX, y, z + tZ]);
-            vertices.push([x + tX, y +height, z + tZ]);
+    constructor(position = [0,0,0], rotation = [0,0,0], scale = 5, segments = 4, color = [0,255,0,1]) {
+        let vertices = [];
+        for(let i =0; i<segments;i++) {
+            for(let c=0; c<=segments;c++) {
+                let tX = Math.cos(Math.PI*2/(segments)*c) * scale;
+                let tZ = Math.sin(Math.PI*2/(segments)*c) * scale;
+                //x,z rotation viewed from top
+
+                //scale x and z coordinates based on local y height
+                tX *= Math.max(Math.sin(Math.PI/(segments) * i),0);
+                tZ *= Math.max(Math.sin(Math.PI/(segments) * i),0);
+
+                let tY = 0;
+                if(i != 0) {
+                tY = Math.cos(Math.PI/(segments)*i) * scale;
+                }
+                else{
+                tY = -Math.cos(Math.PI/(segments)*(segments)) * scale;
+                }
+
+
+                //let [tX2,tY] = Vertex2D.Rotate([tX,0],Math.PI*2/(segments)*c);
+                vertices.push([position[0]+tX,position[1]+ tY,position[2]+tZ]);
+            }
         }
-        vertices.push([x, y + height, z]);
-        let center = [x, y+height/2, z];
-        super(x, y, z, width * height, color, vertices, center);
+        vertices.push([position[0],position[1] - 1 *scale,position[2]]);
+        let center = [position[0], position[1], position[2]];
+        super(position,rotation, scale, color, vertices, center);
+        this.segments = segments;
     }
-    Draw(s, buffer) { //override                                                      
+    Draw(s, buffer, cull = false) { //override                                                      
         let vertices = s.ConvertVertexList(this.vertices);
         let faces = [];
-
-        for (let i = 1; i < vertices.length - 3; i += 2) {
-            faces.push([vertices[i+2], vertices[i+1], vertices[i]]);
-            faces.push([vertices[i+3], vertices[vertices.length-1], vertices[i+1]]);
-            faces.push([vertices[i+1], vertices[i+2], vertices[i+3]]);
-            faces.push([vertices[i], vertices[0], vertices[i+2]]);
-            
+        //top / bottom
+        for(let i = this.vertices.length-1; i>this.vertices.length-this.segments; i--) {
+            faces.push([vertices[this.vertices.length-1], vertices[i], vertices[i-1]]);
         }
-        faces.push([vertices[2], vertices[vertices.length-1], vertices[vertices.length-2]]);
-        faces.push([vertices[vertices.length-3], vertices[0], vertices[1]]);
-        faces.push([vertices[vertices.length-2], vertices[1], vertices[2]]);
-        faces.push([vertices[vertices.length-2], vertices[vertices.length-3], vertices[1]]);
+        faces.push([vertices[this.vertices.length-1], vertices[this.vertices.length-this.segments], vertices[this.vertices.length-this.segments-1]]); //edge case
+        
+        //sides
+        if(true) {
+        for(let i = 0; i < vertices.length - this.segments-1; i++) {
+            if(i % this.segments+1 == 0 && i != 0) {
+            faces.push([vertices[i-this.segments],vertices[i],vertices[i+this.segments]]); //edge case
+            faces.push([vertices[i-this.segments],vertices[this.segments+i],vertices[i+this.segments+1]]);
+            }
+            else{
+            faces.push([vertices[i+1],vertices[i],vertices[i+this.segments+1]]);
+            faces.push([vertices[i],vertices[i+this.segments],vertices[i+this.segments+1]]);
+            }
+        }
+    }
 
-        Geo3D.CullFaces(faces,s).forEach(face => { buffer.push([face, Geo3D.ZSum(face), this.color]); });
+        if(false) {
+            Geo3D.CullFaces(faces,s).forEach(face => { buffer.push([face, Geo3D.ZSum(face), this.color]); });
+           }
+           else{
+            faces.forEach(face => {buffer.push([face, 0, this.color])});   
+           }
     }
 }

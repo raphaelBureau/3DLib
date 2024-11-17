@@ -39,10 +39,36 @@ export class Mat {
         return result;
     }
 
+    static VecToSquareMat(vec) { //converts vec to empty square mat 00 = x, 11 = y, 22 = z, ...
+        let result = new Array(vec.length);
+        for(let i =0 ; i< vec.length; i++) {
+            result[i] = new Array(vec.length);
+            for(let j =0; j< vec.length; j++) {
+                result[i][j] = 0;
+            }
+            result[i][i] = vec[i];
+        }
+        return result;
+    }
+
     static MatToVec(mat) {
         let result = new Array(mat.length);
         for(let i =0; i< mat.length; i++) {
-            result[i] = mat[i][0];
+            result[i] = mat[i][0]; //convert 3x1 matrix to 3d vector
+        }
+        return result;
+    }
+    static SquareMatToVec(mat) {
+        let result = new Array(mat.length);
+        for(let i = 0; i< result.length; i++) {
+            result[i] = mat[i][i]; //selects 00, 11, 22, 33, ...
+        }
+        return result;
+    }
+    static VecToMat(vec) {
+        let result = new Array(vec.length);
+        for(let i = 0 ; i < vec.length; i++) {
+            result[i] = [vec[i]]; //encapsulate in 1x3 matrix
         }
         return result;
     }

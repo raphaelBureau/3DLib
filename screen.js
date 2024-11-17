@@ -72,7 +72,6 @@ class Screen {
         let y = [[Math.cos(this.rot[1]), 0 , Math.sin(this.rot[1])],
                  [0 , 1 , 0],
                  [-Math.sin(this.rot[1]), 0 , Math.cos(this.rot[1])]];
-
         this.rotMat = Mat.Product(x,y);
     }
 }
@@ -81,10 +80,9 @@ export class PerspectiveScreen extends Screen {
     constructor(context, canvas, scale = 1, transform) { super(context, canvas, scale,transform); }
 
     ConvertVertex(vertex3D) {
-        let result = Mat.Sub([[vertex3D[0]],[vertex3D[1]],[vertex3D[2]]], [[this.pos[0]],[this.pos[1]],[this.pos[2]]]);
-        result = Mat.Product(this.rotMat, result);
-
-        let vec = Mat.MatToVec(result);
+        let vec = Mat.MatToVec(
+            Mat.Product(this.rotMat,
+                 Mat.Sub(Mat.VecToMat(vertex3D), Mat.VecToMat(this.pos))));
 
         vec[0] = this.width / 2 + (vec[0] / vec[2] * this.perspective) * this.scale;
         vec[1] = this.height / 2 + (vec[1] / vec[2] * this.perspective) * this.scale;  //le code magique
@@ -99,16 +97,15 @@ export class OrthogonalScreen extends Screen {
     }
 
     ConvertVertex(vertex3D) {
-        let result = Vertex3D.CRotateY(vertex3D, this.rot[1], this.pos);
-        result = Vertex3D.CRotateX(result, this.rot[0], this.pos);
-        result = Vertex3D.CRotateZ(result, this.rot[2], this.pos);
+        
+        let result = Mat.Sub([[vertex3D[0]],[vertex3D[1]],[vertex3D[2]]], [[this.pos[0]],[this.pos[1]],[this.pos[2]]]);
+        result = Mat.Product(this.rotMat, result);
 
-        for (let i = 0; i < 3; i++) {
-            result[i] -= this.pos[i];
-        }
-        result[0] = this.width / 2 + result[0] * this.scale;
-        result[1] = this.height / 2 + result[1] * this.scale;
+        let vec = Mat.MatToVec(result);
 
-        return result;
+        vec[0] = this.width / 2 + vec[0] * this.scale;
+        vec[1] = this.height / 2 + vec[1] * this.scale;
+
+        return vec;
     }
 }
